@@ -39,7 +39,6 @@ const urlSchema = new mongoose.Schema(
 );
 
 // Create index for faster lookups
-urlSchema.index({ shortCode: 1 });
 urlSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL index for automatic document expiration
 
 module.exports = mongoose.model('Url', urlSchema);
