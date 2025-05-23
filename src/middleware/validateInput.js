@@ -15,11 +15,46 @@ const urlSchema = z.object({
     .default(7) // Default to 7 days if not provided
 });
 
-// Middleware to validate URL input
-const validateUrlInput = (req, res, next) => {
+// Schema for user registration
+const registerSchema = z.object({
+  name: z
+    .string()
+    .min(2, { message: 'Name must be at least 2 characters long' })
+    .max(100, { message: 'Name cannot exceed 100 characters' }),
+  email: z
+    .string()
+    .email({ message: 'Invalid email format' })
+    .min(1, { message: 'Email is required' }),
+  password: z
+    .string()
+    .min(8, { message: 'Password must be at least 8 characters long' })
+    .max(100, { message: 'Password cannot exceed 100 characters' }),
+  rememberMe: z
+    .boolean()
+    .optional()
+    .default(false)
+});
+
+// Schema for user login
+const loginSchema = z.object({
+  email: z
+    .string()
+    .email({ message: 'Invalid email format' })
+    .min(1, { message: 'Email is required' }),
+  password: z
+    .string()
+    .min(1, { message: 'Password is required' }),
+  rememberMe: z
+    .boolean()
+    .optional()
+    .default(false)
+});
+
+// Generic validation middleware
+const validateWith = (schema) => (req, res, next) => {
   try {
     // Validate request body against schema
-    const result = urlSchema.safeParse(req.body);
+    const result = schema.safeParse(req.body);
     
     if (!result.success) {
       // Format error messages
@@ -46,6 +81,17 @@ const validateUrlInput = (req, res, next) => {
   }
 };
 
+// Middleware to validate URL input
+const validateUrlInput = validateWith(urlSchema);
+
+// Middleware to validate user registration input
+const validateRegisterInput = validateWith(registerSchema);
+
+// Middleware to validate user login input
+const validateLoginInput = validateWith(loginSchema);
+
 module.exports = {
-  validateUrlInput
+  validateUrlInput,
+  validateRegisterInput,
+  validateLoginInput
 };
