@@ -1,3 +1,6 @@
+const geoip = require('geoip-lite');
+const UAParser = require('ua-parser-js');
+
 const { createShortUrl, getUrlByShortCode, incrementClickCount, updateUrlExpiration } = require('../services/shortenerService');
 const Url = require('../models/Url'); // Import the Url model
 
@@ -76,28 +79,19 @@ const redirectToUrl = async (req, res) => {
     await incrementClickCount(shortCode);
     
     // Extract information for statistics
+    const address = req.get('x-forwarded-for') || req.ip;
     const referrer = req.get('referer') || 'Direct';
     const userAgent = req.get('user-agent') || '';
+
+  const client = address.split(",")[0].trim();
+
+  // Parse the user agent string
+  const parser = new UAParser();
+  const ua = parser.setUA(userAgent).getResult();
+  const geo = geoip.lookup(client);
     
-    // Very simple browser detection (in a real app, you'd use a more comprehensive solution)
-    let browser = 'Unknown';
-    if (userAgent.includes('Firefox')) {
-      browser = 'Firefox';
-    } else if (userAgent.includes('Chrome')) {
-      browser = 'Chrome';
-    } else if (userAgent.includes('Safari')) {
-      browser = 'Safari';
-    } else if (userAgent.includes('Edge') || userAgent.includes('Edg')) {
-      browser = 'Edge';
-    } else if (userAgent.includes('Opera') || userAgent.includes('OPR')) {
-      browser = 'Opera';
-    } else if (userAgent.includes('MSIE') || userAgent.includes('Trident/')) {
-      browser = 'Internet Explorer';
-    }
-    
-    // In a real app, you'd use a geo-IP service to get the country
-    // For this example, we'll use a placeholder
-    const country = req.get('cf-ipcountry') || 'Unknown'; // For Cloudflare users
+  const browser = ua.browser.name || 'Unknown';
+  const country = geo ? geo.country : 'Unknown';
     
     // Record click statistics asynchronously (don't wait for it to complete)
     recordClick(shortCode, { referrer, browser, country }).catch(err => {
