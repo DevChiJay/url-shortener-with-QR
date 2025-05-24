@@ -33,6 +33,13 @@ app.get('/', (req, res) => {
       getQRCode: 'GET /api/url/:shortCode/qr',
       redirect: 'GET /:shortCode',
       
+      // Statistics endpoints
+      urlStatistics: 'GET /api/url/:shortCode/stats',
+      userStatistics: 'GET /api/url/user/stats',
+      
+      // URL management endpoints
+      getUserUrls: 'GET /api/url/user/urls',
+      
       // Authentication endpoints
       register: 'POST /api/auth/register',
       login: 'POST /api/auth/login',

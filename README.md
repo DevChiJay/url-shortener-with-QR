@@ -8,7 +8,8 @@ A robust URL shortening service with QR code generation capabilities built with 
 - 🔄 Automatic redirection to original URLs
 - 📱 QR code generation for shortened URLs
 - ⏱️ Configurable expiration dates for URLs
-- 📊 Click tracking for shortened URLs
+- 📊 Comprehensive click analytics (total clicks, daily breakdown, referrers, browsers, countries)
+- 👤 User authentication with JWT
 - 🔒 Active/inactive link status management
 
 ## Technology Stack
@@ -89,9 +90,55 @@ Automatically redirects to the original URL associated with the provided short c
 
 Returns the QR code image for the shortened URL.
 
+### Get URL Statistics
+
+**Endpoint**: `GET /api/url/:shortCode/stats`
+
+**Authentication**: Required
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "totalClicks": 42,
+    "clicksByDay": [
+      { "date": "2025-05-24", "clicks": 17 },
+      { "date": "2025-05-23", "clicks": 25 }
+    ],
+    "referrers": [
+      { "source": "twitter.com", "count": 15 },
+      { "source": "facebook.com", "count": 10 },
+      { "source": "Direct", "count": 17 }
+    ],
+    "browsers": [
+      { "name": "Chrome", "count": 20 },
+      { "name": "Firefox", "count": 12 },
+      { "name": "Safari", "count": 10 }
+    ],
+    "countries": [
+      { "name": "US", "count": 20 },
+      { "name": "GB", "count": 10 },
+      { "name": "DE", "count": 7 },
+      { "name": "Unknown", "count": 5 }
+    ]
+  }
+}
+```
+
+### Get All User URL Statistics
+
+**Endpoint**: `GET /api/url/user/stats`
+
+**Authentication**: Required
+
+Returns statistics for all URLs owned by the authenticated user.
+
 ### Update URL Expiration
 
 **Endpoint**: `PATCH /api/url/:shortCode/expiration`
+
+**Authentication**: Required
 
 **Request Body**:
 ```json

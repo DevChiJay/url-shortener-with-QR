@@ -7,6 +7,14 @@ const urlSchema = z.object({
     .url({ message: 'Invalid URL format' })
     .min(1, { message: 'URL is required' })
     .max(2048, { message: 'URL is too long (max 2048 characters)' }),
+  description: z
+    .string()
+    .max(500, { message: 'Description cannot exceed 500 characters' })
+    .optional(),
+  domain: z
+    .string()
+    .max(255, { message: 'Domain name is too long' })
+    .optional(),
   expirationDays: z
     .number()
     .int()

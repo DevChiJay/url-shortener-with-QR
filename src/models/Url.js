@@ -13,6 +13,21 @@ const urlSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    description: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Description cannot exceed 500 characters']
+    },
+    domain: {
+      type: String,
+      trim: true,
+      default: null
+    },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
     qrCode: {
       type: String, // Stores the QR code as base64 string
       required: [true, 'QR code is required'],

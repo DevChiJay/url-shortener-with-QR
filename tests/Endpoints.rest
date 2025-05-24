@@ -7,3 +7,13 @@ content-type: application/json
 {
   "url": "https://github.com/ai/nanoid#readme"
 }
+
+###
+# Get statistics for a specific URL (requires authentication)
+GET http://localhost:4000/api/url/2tcfyX/stats
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+
+###
+# Get statistics for all user URLs (requires authentication)
+GET http://localhost:4000/api/url/user/stats
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE

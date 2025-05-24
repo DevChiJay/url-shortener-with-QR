@@ -1,6 +1,7 @@
 const { nanoid } = require('nanoid');
 const Url = require('../models/Url');
 const { generateQRCode } = require('./qrCodeService');
+const { initializeStatistics } = require('./statisticsService');
 
 /**
  * Generates a unique short code for a URL
@@ -30,9 +31,12 @@ const calculateExpirationDate = (days = 7) => {
  * @param {string} originalUrl - The original URL to shorten
  * @param {string} baseUrl - The base URL for the shortened URL (e.g., http://yourdomain.com)
  * @param {number} expirationDays - Number of days until URL expiration (default: 7)
+ * @param {string} description - Optional description for the URL
+ * @param {string} domain - Optional custom domain for the URL
+ * @param {string} userId - Optional user ID to associate with the URL
  * @returns {Promise<Object>} - A promise that resolves to the created URL document
  */
-const createShortUrl = async (originalUrl, baseUrl, expirationDays = 7) => {
+const createShortUrl = async (originalUrl, baseUrl, expirationDays = 7, description = null, domain = null, userId = null) => {
   try {
     // Generate a unique short code
     const shortCode = generateShortCode();
@@ -45,16 +49,22 @@ const createShortUrl = async (originalUrl, baseUrl, expirationDays = 7) => {
     
     // Calculate expiration date
     const expiresAt = calculateExpirationDate(expirationDays);
-    
-    // Create and save the URL document
+      // Create and save the URL document
     const newUrl = new Url({
       originalUrl,
       shortCode,
+      description,
+      domain,
+      userId,
       qrCode,
       expiresAt
     });
     
     await newUrl.save();
+    
+    // Initialize statistics for this URL
+    await initializeStatistics(newUrl._id, shortCode);
+    
     return newUrl;
   } catch (error) {
     console.error('Error creating short URL:', error);

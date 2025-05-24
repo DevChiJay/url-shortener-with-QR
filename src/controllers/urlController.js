@@ -1,19 +1,31 @@
 const { createShortUrl, getUrlByShortCode, incrementClickCount, updateUrlExpiration } = require('../services/shortenerService');
+const Url = require('../models/Url'); // Import the Url model
 
 /**
  * Create a shortened URL and QR code
  * @route POST /api/url/shorten
- * @access Public
+ * @access Public/Private (based on if user is authenticated)
  */
 const shortenUrl = async (req, res) => {
   try {
-    const { url, expirationDays } = req.validatedData;
+    const { url, expirationDays, description, domain } = req.validatedData;
     
     // Get base URL from request or environment variable
     const baseUrl = `${req.protocol}://${req.get('host')}`;
     
+    // Get user ID if user is authenticated
+    const userId = req.user ? req.user.id : null;
+    
+    // If domain is provided, ensure user is authenticated
+    if (domain && !userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required to use custom domains'
+      });
+    }
+    
     // Create short URL and QR code with expiration
-    const result = await createShortUrl(url, baseUrl, expirationDays);
+    const result = await createShortUrl(url, baseUrl, expirationDays, description, domain, userId);
     
     // Return success response
     return res.status(201).json({
@@ -22,6 +34,9 @@ const shortenUrl = async (req, res) => {
         originalUrl: result.originalUrl,
         shortUrl: `${baseUrl}/${result.shortCode}`,
         shortCode: result.shortCode,
+        description: result.description,
+        domain: result.domain,
+        userId: result.userId,
         qrCode: result.qrCode,
         expiresAt: result.expiresAt
       }
@@ -35,6 +50,8 @@ const shortenUrl = async (req, res) => {
     });
   }
 };
+
+const { recordClick } = require('../services/statisticsService');
 
 /**
  * Redirect to original URL from short code
@@ -58,6 +75,35 @@ const redirectToUrl = async (req, res) => {
     // Increment click count
     await incrementClickCount(shortCode);
     
+    // Extract information for statistics
+    const referrer = req.get('referer') || 'Direct';
+    const userAgent = req.get('user-agent') || '';
+    
+    // Very simple browser detection (in a real app, you'd use a more comprehensive solution)
+    let browser = 'Unknown';
+    if (userAgent.includes('Firefox')) {
+      browser = 'Firefox';
+    } else if (userAgent.includes('Chrome')) {
+      browser = 'Chrome';
+    } else if (userAgent.includes('Safari')) {
+      browser = 'Safari';
+    } else if (userAgent.includes('Edge') || userAgent.includes('Edg')) {
+      browser = 'Edge';
+    } else if (userAgent.includes('Opera') || userAgent.includes('OPR')) {
+      browser = 'Opera';
+    } else if (userAgent.includes('MSIE') || userAgent.includes('Trident/')) {
+      browser = 'Internet Explorer';
+    }
+    
+    // In a real app, you'd use a geo-IP service to get the country
+    // For this example, we'll use a placeholder
+    const country = req.get('cf-ipcountry') || 'Unknown'; // For Cloudflare users
+    
+    // Record click statistics asynchronously (don't wait for it to complete)
+    recordClick(shortCode, { referrer, browser, country }).catch(err => {
+      console.error('Error recording click statistics:', err);
+    });
+    
     // Redirect to original URL
     return res.redirect(urlDoc.originalUrl);
   } catch (error) {
@@ -73,7 +119,7 @@ const redirectToUrl = async (req, res) => {
 /**
  * Update URL expiration
  * @route PATCH /api/url/:shortCode/expiration
- * @access Public
+ * @access Private
  */
 const updateExpiration = async (req, res) => {
   try {
@@ -84,6 +130,24 @@ const updateExpiration = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Valid expiration days required (positive number)'
+      });
+    }
+    
+    // Get the URL document first to check ownership
+    const urlDoc = await getUrlByShortCode(shortCode);
+    
+    if (!urlDoc) {
+      return res.status(404).json({
+        success: false,
+        message: 'URL not found or has expired'
+      });
+    }
+    
+    // Check if the URL belongs to the authenticated user
+    if (urlDoc.userId && urlDoc.userId.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update this URL'
       });
     }
     
@@ -154,9 +218,35 @@ const getQRCode = async (req, res) => {
   }
 };
 
+/**
+ * Get all URLs for the authenticated user
+ * @route GET /api/url/user/urls
+ * @access Private
+ */
+const getUserUrls = async (req, res) => {
+  try {
+    // Fetch all URLs belonging to the authenticated user
+    const urls = await Url.find({ userId: req.user.id }).sort({ createdAt: -1 });
+    
+    return res.status(200).json({
+      success: true,
+      count: urls.length,
+      data: urls
+    });
+  } catch (error) {
+    console.error('Error in getUserUrls controller:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while fetching user URLs',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   shortenUrl,
   redirectToUrl,
   updateExpiration,
-  getQRCode
+  getQRCode,
+  getUserUrls
 };
