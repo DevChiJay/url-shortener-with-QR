@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { shortenUrl, redirectToUrl, updateExpiration, getQRCode, getUserUrls } = require('../controllers/urlController');
+const { shortenUrl, redirectToUrl, updateUrl, getQRCode, getUserUrls, deleteUrl } = require('../controllers/urlController');
 const { getUrlStatistics, getUserUrlStatistics } = require('../controllers/statisticsController');
 const { validateUrlInput } = require('../middleware/validateInput');
 const { protect } = require('../middleware/authMiddleware');
@@ -47,8 +47,11 @@ router.get('/:shortCode', redirectToUrl);
 router.get('/:shortCode/qr', getQRCode);
 
 // Protected endpoints (require authentication)
-// PATCH endpoint to update URL expiration
-router.patch('/:shortCode/expiration', protect, updateExpiration);
+// PATCH endpoint to update URL properties
+router.patch('/:shortCode', protect, updateUrl);
+
+// DELETE endpoint to delete a URL
+router.delete('/:shortCode', protect, deleteUrl);
 
 // GET endpoint to get all URLs for the authenticated user
 router.get('/user/urls', protect, getUserUrls);

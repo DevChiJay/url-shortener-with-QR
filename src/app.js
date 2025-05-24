@@ -29,7 +29,8 @@ app.get('/', (req, res) => {
     endpoints: {
       // URL shortening endpoints
       shortenUrl: 'POST /api/url/shorten',
-      updateExpiration: 'PATCH /api/url/:shortCode/expiration',
+      updateUrl: 'PATCH /api/url/:shortCode',
+      deleteUrl: 'DELETE /api/url/:shortCode',
       getQRCode: 'GET /api/url/:shortCode/qr',
       redirect: 'GET /:shortCode',
       

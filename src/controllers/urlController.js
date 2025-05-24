@@ -111,21 +111,14 @@ const redirectToUrl = async (req, res) => {
 };
 
 /**
- * Update URL expiration
- * @route PATCH /api/url/:shortCode/expiration
+ * Update URL properties
+ * @route PATCH /api/url/:shortCode
  * @access Private
  */
-const updateExpiration = async (req, res) => {
+const updateUrl = async (req, res) => {
   try {
     const { shortCode } = req.params;
-    const { expirationDays } = req.body;
-    
-    if (!expirationDays || typeof expirationDays !== 'number' || expirationDays <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Valid expiration days required (positive number)'
-      });
-    }
+    const { expirationDays, description, domain } = req.body;
     
     // Get the URL document first to check ownership
     const urlDoc = await getUrlByShortCode(shortCode);
@@ -145,7 +138,52 @@ const updateExpiration = async (req, res) => {
       });
     }
     
-    const updatedUrl = await updateUrlExpiration(shortCode, expirationDays);
+    // Prepare update data object
+    const updateData = {};
+    
+    // Add expiration days if provided
+    if (expirationDays !== undefined) {
+      if (typeof expirationDays !== 'number' || expirationDays <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid expiration days required (positive number)'
+        });
+      }
+      updateData.expirationDays = expirationDays;
+    }
+    
+    // Add description if provided
+    if (description !== undefined) {
+      updateData.description = description;
+    }
+    
+    // Add domain if provided
+    if (domain !== undefined) {
+      updateData.domain = domain;
+    }
+    
+    // If no valid update fields are provided
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid update fields provided'
+      });
+    }
+    
+    // Update URL with all provided fields
+    const updatedUrl = await Url.findOneAndUpdate(
+      { shortCode },
+      {
+        ...(updateData.description !== undefined && { description: updateData.description }),
+        ...(updateData.domain !== undefined && { domain: updateData.domain }),
+        ...(updateData.expirationDays !== undefined && { 
+          expiresAt: updateData.expirationDays > 0 
+            ? new Date(Date.now() + updateData.expirationDays * 24 * 60 * 60 * 1000) 
+            : null 
+        })
+      },
+      { new: true }
+    );
     
     if (!updatedUrl) {
       return res.status(404).json({
@@ -158,14 +196,17 @@ const updateExpiration = async (req, res) => {
       success: true,
       data: {
         shortCode: updatedUrl.shortCode,
+        originalUrl: updatedUrl.originalUrl,
+        description: updatedUrl.description,
+        domain: updatedUrl.domain,
         expiresAt: updatedUrl.expiresAt
       }
     });
   } catch (error) {
-    console.error('Error in updateExpiration controller:', error);
+    console.error('Error in updateUrl controller:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error while updating expiration',
+      message: 'Server error while updating URL',
       error: error.message
     });
   }
@@ -237,10 +278,59 @@ const getUserUrls = async (req, res) => {
   }
 };
 
+/**
+ * Delete a URL by short code
+ * @route DELETE /api/url/:shortCode
+ * @access Private
+ */
+const deleteUrl = async (req, res) => {
+  try {
+    const { shortCode } = req.params;
+    
+    // Get URL document by short code to check ownership
+    const urlDoc = await getUrlByShortCode(shortCode);
+    
+    if (!urlDoc) {
+      return res.status(404).json({
+        success: false,
+        message: 'URL not found or has expired'
+      });
+    }
+    
+    // Check if the URL belongs to the authenticated user
+    if (urlDoc.userId && urlDoc.userId.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete this URL'
+      });
+    }
+    
+    // Delete the URL
+    await Url.findOneAndDelete({ shortCode });
+    
+    return res.status(200).json({
+      success: true,
+      message: 'URL successfully deleted',
+      data: {
+        shortCode
+      }
+    });
+  } catch (error) {
+    console.error('Error in deleteUrl controller:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while deleting URL',
+      error: error.message
+    });
+  }
+};
+
+// Update module.exports to include the deleteUrl function
 module.exports = {
   shortenUrl,
   redirectToUrl,
-  updateExpiration,
+  updateUrl,
   getQRCode,
-  getUserUrls
+  getUserUrls,
+  deleteUrl
 };
