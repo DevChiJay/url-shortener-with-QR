@@ -34,12 +34,13 @@ const calculateExpirationDate = (days = 7) => {
  * @param {string} description - Optional description for the URL
  * @param {string} domain - Optional custom domain for the URL
  * @param {string} userId - Optional user ID to associate with the URL
+ * @param {string} customSlug - Optional custom slug to use instead of generated shortCode
  * @returns {Promise<Object>} - A promise that resolves to the created URL document
  */
-const createShortUrl = async (originalUrl, baseUrl, expirationDays = 7, description = null, domain = null, userId = null) => {
+const createShortUrl = async (originalUrl, baseUrl, expirationDays = 7, description = null, domain = null, userId = null, customSlug = null) => {
   try {
-    // Generate a unique short code
-    const shortCode = generateShortCode();
+    // Use custom slug if provided, otherwise generate a unique short code
+    const shortCode = customSlug || generateShortCode();
     
     // Create the full shortened URL
     const shortUrl = `${baseUrl}/${shortCode}`;
@@ -49,7 +50,8 @@ const createShortUrl = async (originalUrl, baseUrl, expirationDays = 7, descript
     
     // Calculate expiration date
     const expiresAt = calculateExpirationDate(expirationDays);
-      // Create and save the URL document
+    
+    // Create and save the URL document
     const newUrl = new Url({
       originalUrl,
       shortCode,

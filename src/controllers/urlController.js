@@ -11,10 +11,11 @@ const Url = require('../models/Url'); // Import the Url model
  */
 const shortenUrl = async (req, res) => {
   try {
-    const { originalUrl, expirationDays, description, domain } = req.validatedData;
+    const { originalUrl, expirationDays, description, domain, customSlug } = req.validatedData;
     
     // Get base URL from request or environment variable
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    // const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
     
     // Get user ID if user is authenticated
     const userId = req.user ? req.user.id : null;
@@ -27,8 +28,19 @@ const shortenUrl = async (req, res) => {
       });
     }
     
+    // If customSlug is provided, ensure it's not already taken
+    if (customSlug) {
+      const existingUrl = await getUrlByShortCode(customSlug);
+      if (existingUrl) {
+        return res.status(409).json({
+          success: false,
+          message: 'Custom slug is already in use'
+        });
+      }
+    }
+    
     // Create short URL and QR code with expiration
-    const result = await createShortUrl(originalUrl, baseUrl, expirationDays, description, domain, userId);
+    const result = await createShortUrl(originalUrl, baseUrl, expirationDays, description, domain, userId, customSlug);
     
     // Return success response
     return res.status(201).json({
