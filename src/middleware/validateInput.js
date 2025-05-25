@@ -2,7 +2,7 @@ const { z } = require('zod');
 
 // Schema for URL shortening requests
 const urlSchema = z.object({
-  url: z
+  originalUrl: z
     .string()
     .url({ message: 'Invalid URL format' })
     .min(1, { message: 'URL is required' })
@@ -11,9 +11,9 @@ const urlSchema = z.object({
     .string()
     .max(500, { message: 'Description cannot exceed 500 characters' })
     .optional(),
-  domain: z
+  customSlug: z
     .string()
-    .max(255, { message: 'Domain name is too long' })
+    .max(255, { message: 'Custom slug is too long' })
     .optional(),
   expirationDays: z
     .number()

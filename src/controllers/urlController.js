@@ -11,7 +11,7 @@ const Url = require('../models/Url'); // Import the Url model
  */
 const shortenUrl = async (req, res) => {
   try {
-    const { url, expirationDays, description, domain } = req.validatedData;
+    const { originalUrl, expirationDays, description, domain } = req.validatedData;
     
     // Get base URL from request or environment variable
     const baseUrl = `${req.protocol}://${req.get('host')}`;
@@ -28,7 +28,7 @@ const shortenUrl = async (req, res) => {
     }
     
     // Create short URL and QR code with expiration
-    const result = await createShortUrl(url, baseUrl, expirationDays, description, domain, userId);
+    const result = await createShortUrl(originalUrl, baseUrl, expirationDays, description, domain, userId);
     
     // Return success response
     return res.status(201).json({

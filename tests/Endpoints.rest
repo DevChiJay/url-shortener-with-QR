@@ -1,11 +1,14 @@
-GET http://localhost:4000/api/url/2tcfyX/qr
+GET http://localhost:4000/api/url/dvK4Qd/qr
+
+###
+GET http://localhost:4000/dvK4Qd
 
 ###
 POST http://localhost:4000/api/url/shorten
 content-type: application/json
 
 {
-  "url": "https://github.com/ai/nanoid#readme"
+  "originalUrl": "https://github.com/DevChiJay/api-portal/tree/main/src/app"
 }
 
 ###

@@ -70,6 +70,5 @@ const statisticsSchema = new mongoose.Schema(
 
 // Create indexes for faster querying
 statisticsSchema.index({ urlId: 1 });
-statisticsSchema.index({ shortCode: 1 });
 
 module.exports = mongoose.model('Statistics', statisticsSchema);
