@@ -130,7 +130,7 @@ const redirectToUrl = async (req, res) => {
 const updateUrl = async (req, res) => {
   try {
     const { shortCode } = req.params;
-    const { expirationDays, description, domain } = req.body;
+    const { expiresAt, description, customSlug } = req.body;
     
     // Get the URL document first to check ownership
     const urlDoc = await getUrlByShortCode(shortCode);
@@ -143,25 +143,33 @@ const updateUrl = async (req, res) => {
     }
     
     // Check if the URL belongs to the authenticated user
-    if (urlDoc.userId && urlDoc.userId.toString() !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to update this URL'
-      });
+    if (urlDoc.userId) {
+      // Convert both IDs to strings for proper comparison
+      const urlUserId = urlDoc.userId.toString();
+      const requestUserId = req.user.id.toString();
+      
+      if (urlUserId !== requestUserId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Not authorized to update this URL'
+        });
+      }
     }
     
     // Prepare update data object
     const updateData = {};
     
-    // Add expiration days if provided
-    if (expirationDays !== undefined) {
-      if (typeof expirationDays !== 'number' || expirationDays <= 0) {
+    // Add expiresAt if provided
+    if (expiresAt !== undefined) {
+      // Validate that expiresAt is a valid date
+      const expirationDate = new Date(expiresAt);
+      if (isNaN(expirationDate.getTime())) {
         return res.status(400).json({
           success: false,
-          message: 'Valid expiration days required (positive number)'
+          message: 'Invalid expiration date format'
         });
       }
-      updateData.expirationDays = expirationDays;
+      updateData.expiresAt = expirationDate;
     }
     
     // Add description if provided
@@ -169,9 +177,17 @@ const updateUrl = async (req, res) => {
       updateData.description = description;
     }
     
-    // Add domain if provided
-    if (domain !== undefined) {
-      updateData.domain = domain;
+    // Handle custom slug if provided
+    if (customSlug !== undefined && customSlug !== shortCode) {
+      // Check if the new custom slug is already taken
+      const existingUrl = await getUrlByShortCode(customSlug);
+      if (existingUrl) {
+        return res.status(409).json({
+          success: false,
+          message: 'Custom slug is already in use'
+        });
+      }
+      updateData.shortCode = customSlug;
     }
     
     // If no valid update fields are provided
@@ -187,12 +203,8 @@ const updateUrl = async (req, res) => {
       { shortCode },
       {
         ...(updateData.description !== undefined && { description: updateData.description }),
-        ...(updateData.domain !== undefined && { domain: updateData.domain }),
-        ...(updateData.expirationDays !== undefined && { 
-          expiresAt: updateData.expirationDays > 0 
-            ? new Date(Date.now() + updateData.expirationDays * 24 * 60 * 60 * 1000) 
-            : null 
-        })
+        ...(updateData.expiresAt !== undefined && { expiresAt: updateData.expiresAt }),
+        ...(updateData.shortCode !== undefined && { shortCode: updateData.shortCode })
       },
       { new: true }
     );
@@ -210,7 +222,6 @@ const updateUrl = async (req, res) => {
         shortCode: updatedUrl.shortCode,
         originalUrl: updatedUrl.originalUrl,
         description: updatedUrl.description,
-        domain: updatedUrl.domain,
         expiresAt: updatedUrl.expiresAt
       }
     });
@@ -310,11 +321,16 @@ const deleteUrl = async (req, res) => {
     }
     
     // Check if the URL belongs to the authenticated user
-    if (urlDoc.userId && urlDoc.userId.toString() !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to delete this URL'
-      });
+    if (urlDoc.userId) {
+      const urlUserId = urlDoc.userId.toString();
+      const requestUserId = req.user.id.toString();
+      
+      if (urlUserId !== requestUserId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Not authorized to delete this URL'
+        });
+      }
     }
     
     // Delete the URL

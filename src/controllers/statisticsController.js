@@ -21,11 +21,16 @@ const getUrlStatistics = async (req, res) => {
     }
 
     // If the URL belongs to a user, check if the current user has permission
-    if (urlDoc.userId && urlDoc.userId.toString() !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to access these statistics'
-      });
+    if (urlDoc.userId) {
+      const urlUserId = urlDoc.userId.toString();
+      const requestUserId = req.user.id.toString();
+      
+      if (urlUserId !== requestUserId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Not authorized to access these statistics'
+        });
+      }
     }
 
     // Get statistics for the URL
