@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { shortenUrl, redirectToUrl, updateUrl, getQRCode, getUserUrls, deleteUrl } = require('../controllers/urlController');
 const { getUrlStatistics, getUserUrlStatistics } = require('../controllers/statisticsController');
+const contactUs = require("../controllers/contact.controller");
 const { validateUrlInput } = require('../middleware/validateInput');
 const { protect } = require('../middleware/authMiddleware');
 const { verifyToken } = require('../utils/authUtils');
@@ -61,5 +62,7 @@ router.get('/:shortCode/stats', protect, getUrlStatistics);
 
 // GET endpoint to get statistics for all URLs owned by the user
 router.get('/user/stats', protect, getUserUrlStatistics);
+
+router.post("/contact", contactUs);
 
 module.exports = router;
