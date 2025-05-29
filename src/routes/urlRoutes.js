@@ -6,6 +6,7 @@ const contactUs = require("../controllers/contact.controller");
 const { validateUrlInput } = require('../middleware/validateInput');
 const { protect } = require('../middleware/authMiddleware');
 const { verifyToken } = require('../utils/authUtils');
+const { redirectRateLimiter, contactRateLimiter } = require('../middleware/rateLimitMiddleware');
 const User = require('../models/User');
 
 // Public endpoints
@@ -41,8 +42,8 @@ router.post('/shorten', validateUrlInput, (req, res, next) => {
   }
 }, shortenUrl);
 
-// GET endpoint to redirect to original URL
-router.get('/:shortCode', redirectToUrl);
+// GET endpoint to redirect to original URL (rate limited)
+router.get('/:shortCode', redirectRateLimiter, redirectToUrl);
 
 // GET endpoint to retrieve QR code for a short URL
 router.get('/:shortCode/qr', getQRCode);
@@ -63,6 +64,7 @@ router.get('/:shortCode/stats', protect, getUrlStatistics);
 // GET endpoint to get statistics for all URLs owned by the user
 router.get('/user/stats', protect, getUserUrlStatistics);
 
-router.post("/contact", contactUs);
+// Apply rate limiting to contact us endpoint
+router.post("/contact", contactRateLimiter, contactUs);
 
 module.exports = router;

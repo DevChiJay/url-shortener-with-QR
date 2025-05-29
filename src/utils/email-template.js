@@ -1,6 +1,6 @@
 const emailTemplate = (enteredData) => {
   return {
-    from: `"${enteredData.fullName}" <noreply@devchihub.com>`,
+    from: `"${enteredData.fullName}" <support@capp.to>`,
     to: enteredData.sendTo, // list of receivers
     subject: `${enteredData.subject} - [Capp Contact Form]`,
     text: "Hello world?", // plain‑text body
