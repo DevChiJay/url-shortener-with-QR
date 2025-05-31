@@ -1,8 +1,10 @@
 const geoip = require('geoip-lite');
 const UAParser = require('ua-parser-js');
+const User = require('../models/User'); // Import the User model
 
-const { createShortUrl, getUrlByShortCode, incrementClickCount, updateUrlExpiration } = require('../services/shortenerService');
+const { createShortUrl, getUrlByShortCode, incrementClickCount } = require('../services/shortenerService');
 const Url = require('../models/Url'); // Import the Url model
+const Statistics = require('../models/Statistics'); // Import the Statistics model
 
 /**
  * Create a shortened URL and QR code
@@ -19,6 +21,20 @@ const shortenUrl = async (req, res) => {
     
     // Get user ID if user is authenticated
     const userId = req.user ? req.user.id : null;
+
+    // If user is authenticated, check their plan and URL limit
+    if (userId) {
+      const user = await User.findById(userId);
+      if (user && user.plan === 'free') {
+        const urlCount = await Url.countDocuments({ userId: userId });
+        if (urlCount >= user.urlLimit) {
+          return res.status(403).json({
+            success: false,
+            message: 'You have reached your URL limit for the free plan.'
+          });
+        }
+      }
+    }
     
     // If domain is provided, ensure user is authenticated
     if (domain && !userId) {
@@ -216,6 +232,14 @@ const updateUrl = async (req, res) => {
       });
     }
     
+    // If shortCode was updated, also update it in the Statistics collection
+    if (updateData.shortCode) {
+      await Statistics.findOneAndUpdate(
+        { shortCode },
+        { shortCode: updateData.shortCode }
+      );
+    }
+    
     return res.status(200).json({
       success: true,
       data: {
@@ -333,12 +357,15 @@ const deleteUrl = async (req, res) => {
       }
     }
     
-    // Delete the URL
-    await Url.findOneAndDelete({ shortCode });
+    // Delete both the URL and its matching statistics
+    await Promise.all([
+      Url.findOneAndDelete({ shortCode }),
+      Statistics.findOneAndDelete({ shortCode })
+    ]);
     
     return res.status(200).json({
       success: true,
-      message: 'URL successfully deleted',
+      message: 'URL and associated statistics successfully deleted',
       data: {
         shortCode
       }

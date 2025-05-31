@@ -26,6 +26,15 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    plan: {
+      type: String,
+      enum: ['free', 'premium'],
+      default: 'free',
+    },
+    urlLimit: {
+      type: Number,
+      default: 10, // Default URL limit for users (primarily for 'free' plan)
+    },
     refreshToken: {
       type: String,
       select: false, // Don't include refresh token in query results by default
