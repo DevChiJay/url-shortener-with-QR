@@ -45,9 +45,21 @@ const loginRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const shortenRateLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 1 day
+  max: 10, // Limit each IP to 10 shorten requests per day
+  message: {
+    success: false,
+    message: 'Too many shorten requests. Please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   redirectRateLimiter,
   contactRateLimiter,
   registerRateLimiter,
-  loginRateLimiter
+  loginRateLimiter,
+  shortenRateLimiter
 };

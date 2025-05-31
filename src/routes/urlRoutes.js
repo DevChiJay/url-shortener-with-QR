@@ -6,12 +6,12 @@ const contactUs = require("../controllers/contact.controller");
 const { validateUrlInput } = require('../middleware/validateInput');
 const { protect } = require('../middleware/authMiddleware');
 const { verifyToken } = require('../utils/authUtils');
-const { redirectRateLimiter, contactRateLimiter } = require('../middleware/rateLimitMiddleware');
+const { redirectRateLimiter, contactRateLimiter, shortenRateLimiter } = require('../middleware/rateLimitMiddleware');
 const User = require('../models/User');
 
 // Public endpoints
 // POST endpoint to create a shortened URL (works with or without authentication)
-router.post('/shorten', validateUrlInput, (req, res, next) => {
+router.post('/shorten', shortenRateLimiter, validateUrlInput, (req, res, next) => {
   // Try to authenticate but continue even if no token
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
