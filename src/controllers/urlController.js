@@ -2,7 +2,7 @@ const geoip = require('geoip-lite');
 const UAParser = require('ua-parser-js');
 const User = require('../models/User'); // Import the User model
 
-const { createShortUrl, getUrlByShortCode, incrementClickCount } = require('../services/shortenerService');
+const { createShortUrl, getUrlByShortCode, incrementClickCount, findByOriginalUrl } = require('../services/shortenerService');
 const Url = require('../models/Url'); // Import the Url model
 const Statistics = require('../models/Statistics'); // Import the Statistics model
 
@@ -21,6 +21,28 @@ const shortenUrl = async (req, res) => {
     
     // Get user ID if user is authenticated
     const userId = req.user ? req.user.id : null;
+
+    // Check if the URL has been shortened before
+    const existingUrl = await findByOriginalUrl(originalUrl, userId);
+    
+    if (existingUrl) {
+      // If URL already exists, return the existing details
+      return res.status(200).json({
+        success: true,
+        message: 'URL has already been shortened',
+        data: {
+          originalUrl: existingUrl.originalUrl,
+          shortUrl: `${baseUrl}/${existingUrl.shortCode}`,
+          shortCode: existingUrl.shortCode,
+          description: existingUrl.description,
+          domain: existingUrl.domain,
+          userId: existingUrl.userId,
+          qrCode: existingUrl.qrCode,
+          expiresAt: existingUrl.expiresAt,
+          clicks: existingUrl.clicks
+        }
+      });
+    }
 
     // If user is authenticated, check their plan and URL limit
     if (userId) {

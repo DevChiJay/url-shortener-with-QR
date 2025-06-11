@@ -136,11 +136,40 @@ const updateUrlExpiration = async (shortCode, expirationDays) => {
   }
 };
 
+/**
+ * Finds a URL document by its original URL
+ * 
+ * @param {string} originalUrl - The original URL to look up
+ * @param {string} userId - Optional user ID to match (if provided)
+ * @returns {Promise<Object|null>} - A promise that resolves to the URL document or null if not found
+ */
+const findByOriginalUrl = async (originalUrl, userId = null) => {
+  try {
+    const query = { 
+      originalUrl, 
+      active: true,
+      expiresAt: { $gt: new Date() } // Check if URL has not expired
+    };
+
+    // If userId is provided, add it to the query to find URLs specific to that user
+    if (userId) {
+      query.userId = userId;
+    }
+
+    const url = await Url.findOne(query);
+    return url;
+  } catch (error) {
+    console.error('Error finding URL by original URL:', error);
+    throw new Error('Failed to find URL by original URL');
+  }
+};
+
 module.exports = {
   generateShortCode,
   createShortUrl,
   getUrlByShortCode,
   incrementClickCount,
   updateUrlExpiration,
-  calculateExpirationDate
+  calculateExpirationDate,
+  findByOriginalUrl
 };
